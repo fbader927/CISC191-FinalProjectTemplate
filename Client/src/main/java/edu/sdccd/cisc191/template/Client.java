@@ -2,50 +2,98 @@ package edu.sdccd.cisc191.template;
 
 import java.net.*;
 import java.io.*;
+import java.io.BufferedWriter;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.util.Scanner;
 
-/**
- * This program opens a connection to a computer specified
- * as the first command-line argument.  If no command-line
- * argument is given, it prompts the user for a computer
- * to connect to.  The connection is made to
- * the port specified by LISTENING_PORT.  The program reads one
- * line of text from the connection and then closes the
- * connection.  It displays the text that it read on
- * standard output.  This program is meant to be used with
- * the server program, DateServer, which sends the current
- * date and time on the computer where the server is running.
- */
 
-public class Client {
-    private Socket clientSocket;
-    private PrintWriter out;
-    private BufferedReader in;
 
-    public void startConnection(String ip, int port) throws IOException {
-        clientSocket = new Socket(ip, port);
-        out = new PrintWriter(clientSocket.getOutputStream(), true);
-        in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-    }
+//create abstract class to take in user input
+abstract class customerInput {
+    public void input() {
+        //declare socket to enable communication between server and client
+        Socket socket = null;
+        //declare input and output streams to send messages between server/client
+        InputStreamReader inputStreamReader = null;
+        OutputStreamWriter outputStreamWriter = null;
+        //declare buffers to read/write larger parts of data more efficiently
+        BufferedReader bufferedReader = null;
+        BufferedWriter bufferedWriter = null;
 
-    public CustomerResponse sendRequest() throws Exception {
-        out.println(CustomerRequest.toJSON(new CustomerRequest(1)));
-        return CustomerResponse.fromJSON(in.readLine());
-    }
-
-    public void stopConnection() throws IOException {
-        in.close();
-        out.close();
-        clientSocket.close();
-    }
-    public static void main(String[] args) {
-        Client client = new Client();
         try {
-            client.startConnection("127.0.0.1", 4444);
-            System.out.println(client.sendRequest().toString());
-            client.stopConnection();
-        } catch(Exception e) {
+            //declare socket object to communicate to server
+            socket = new Socket("localhost", 4444);
+            //connect input/output stream to socket
+            inputStreamReader = new InputStreamReader(socket.getInputStream());
+            outputStreamWriter = new OutputStreamWriter(socket.getOutputStream());
+            //wrap the input/output streams in buffer
+            bufferedReader = new BufferedReader(inputStreamReader);
+            bufferedWriter = new BufferedWriter(outputStreamWriter);
+            //declare scanner for keyboard input
+            Scanner scanner = new Scanner(System.in);
+
+            while (true) {
+                String userOrd = scanner.nextLine();
+                //allow user input to buffer
+                bufferedWriter.write(userOrd);
+                bufferedWriter.newLine();
+                //allows message to send after user enters input
+                bufferedWriter.flush();
+                //prints user input
+                System.out.println("Server: " + bufferedReader.readLine());
+                //breaks loop
+                if (userOrd.equalsIgnoreCase("close"))
+                    break;
+            }
+        }
+        //error handler
+        catch (IOException e) {
             e.printStackTrace();
         }
+        finally {
+            //required for error catching
+            try {
+                if (socket != null)
+                    socket.close();
+                if (inputStreamReader != null)
+                    inputStreamReader.close();
+                if (outputStreamWriter != null)
+                    outputStreamWriter.close();
+                if (bufferedReader != null)
+                    bufferedReader.close();
+                if (bufferedWriter != null)
+                    bufferedWriter.close();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
-} //end class Client
+
+}
+//create class to extend abstract class (otherwise error)
+class orders extends customerInput {
+}
+//create interface for welcome message
+interface welcomePrompt {
+}
+//create class to implement the interface for the welcome message
+class prompt implements welcomePrompt {
+    public void welcome() {
+        System.out.println("What would you like to order?\n");
+    }
+}
+//create client class with main that creates the objects to display welcome prompt(interface) and take in user input(abstract class)
+public class Client {
+    public static void main(String[] args) {
+        orders o = new orders();
+        prompt p = new prompt();
+        p.welcome();
+        o.input();
+    }
+}
+
+
+
 

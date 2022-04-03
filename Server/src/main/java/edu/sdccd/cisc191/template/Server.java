@@ -2,51 +2,64 @@ package edu.sdccd.cisc191.template;
 
 import java.net.*;
 import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
 
-/**
- * This program is a server that takes connection requests on
- * the port specified by the constant LISTENING_PORT.  When a
- * connection is opened, the program sends the current time to
- * the connected socket.  The program will continue to receive
- * and process connections until it is killed (by a CONTROL-C,
- * for example).  Note that this server processes each connection
- * as it is received, rather than creating a separate thread
- * to process the connection.
+/*
+Github release tag link for objective: https://github.com/MiramarCISC/CISC191-FinalProjectTemplate
  */
 public class Server {
-    private ServerSocket serverSocket;
-    private Socket clientSocket;
-    private PrintWriter out;
-    private BufferedReader in;
+    public static void main(String[] args) throws IOException {
+        //declare socket for communication
+        Socket socket = null;
+        //declare input/output stream variables and buffer
+        InputStreamReader inputStreamReader = null;
+        OutputStreamWriter outputStreamWriter = null;
+        BufferedReader bufferedReader = null;
+        BufferedWriter bufferedWriter = null;
+        //declare socket object and port for server to listen for connections
+        ServerSocket serverSocket = null;
+        serverSocket = new ServerSocket(4444);
 
-    public void start(int port) throws Exception {
-        serverSocket = new ServerSocket(port);
-        clientSocket = serverSocket.accept();
-        out = new PrintWriter(clientSocket.getOutputStream(), true);
-        in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        while (true) {
+            try {
+                //declares socket object when connection to server is accepted
+                socket = serverSocket.accept();
+                //connect input/output stream to socket and declare buffer
+                inputStreamReader = new InputStreamReader(socket.getInputStream());
+                outputStreamWriter = new OutputStreamWriter(socket.getOutputStream());
+                bufferedReader = new BufferedReader(inputStreamReader);
+                bufferedWriter = new BufferedWriter(outputStreamWriter);
 
-        String inputLine;
-        while ((inputLine = in.readLine()) != null) {
-            CustomerRequest request = CustomerRequest.fromJSON(inputLine);
-            CustomerResponse response = new CustomerResponse(request.getId(), "Jane", "Doe");
-            out.println(CustomerResponse.toJSON(response));
+                while(true) {
+                    //gets user input and prints output
+                    String ord = bufferedReader.readLine();
+                    System.out.println("Customer: " + ord);
+                    //states order was received
+                    bufferedWriter.write("Order received");
+                    bufferedWriter.newLine();
+                    bufferedWriter.flush();
+
+                    //closes loop when statement is entered by user
+                    if (ord.equalsIgnoreCase("close"));
+                    break;
+                }
+                //closes everything when program ends
+                socket.close();
+                inputStreamReader.close();
+                outputStreamWriter.close();
+                bufferedReader.close();
+                bufferedWriter.close();
+
+            }
+            //error handler
+            catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
-
-    public void stop() throws IOException {
-        in.close();
-        out.close();
-        clientSocket.close();
-        serverSocket.close();
-    }
-
-    public static void main(String[] args) {
-        Server server = new Server();
-        try {
-            server.start(4444);
-            server.stop();
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
-    }
-} //end class Server
+}
